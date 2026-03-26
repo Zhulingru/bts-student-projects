@@ -5,6 +5,22 @@ function escapeHtml(str){
   });
 }
 
+function normalizeVideoUrl(url){
+  const raw = String(url || '').trim();
+  if (!raw || raw === '#') return raw;
+
+  // Google Drive: convert "view" page link -> direct download link for <video>
+  // Example:
+  // https://drive.google.com/file/d/<ID>/view?usp=sharing
+  const m = raw.match(/drive\.google\.com\/file\/d\/([^\/?]+)\//);
+  if (m && m[1]) {
+    const id = m[1];
+    return `https://drive.google.com/uc?export=download&id=${id}`;
+  }
+
+  return raw;
+}
+
 async function loadStudents(){
   try{
     const res = await fetch('data/students.json', { cache: 'no-store' });
@@ -43,8 +59,9 @@ function renderStudentCards(students, className){
 
   students.forEach((s) => {
     const safeName = escapeHtml(s.name || '');
-    const safeVideoUrl = escapeHtml(s.videoUrl || '');
-    const hasVideo = !!(s.videoUrl && s.videoUrl !== '#');
+    const normalizedVideoUrl = normalizeVideoUrl(s.videoUrl);
+    const safeVideoUrl = escapeHtml(normalizedVideoUrl || '');
+    const hasVideo = !!(normalizedVideoUrl && normalizedVideoUrl !== '#');
 
     const card = document.createElement('div');
     card.className = 'studentCard';
