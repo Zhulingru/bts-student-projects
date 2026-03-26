@@ -30,27 +30,8 @@ function extractDriveId(url){
 function getDrivePreviewUrl(url){
   const id = extractDriveId(url);
   if (!id) return '';
-  // Use Drive "view" page inside iframe instead of "preview".
-  // In practice, "preview" often falls back to a lower-bitrate/transcoded stream.
-  return `https://drive.google.com/file/d/${id}/view?usp=sharing`;
-}
-
-function renderOpenInNewTabFallback(wrapEl, student){
-  if (!wrapEl) return;
-  const title = escapeHtml(student?.name || '此影片');
-  const direct = normalizeVideoUrl(student?.videoUrl || '');
-  const raw = String(student?.videoUrl || '').trim();
-  const targetUrl = direct && direct !== '#' ? direct : raw;
-  if (!targetUrl || targetUrl === '#') return;
-
-  wrapEl.innerHTML = `
-    <div class="studentVideoFallback">
-      <p>此嵌入播放器暫時無法在此頁面播放。</p>
-      <a class="btn btn--primary" href="${escapeHtml(targetUrl)}" target="_blank" rel="noopener noreferrer">
-        開新分頁觀看：${title}
-      </a>
-    </div>
-  `;
+  // Preview is usually more tolerant than <video src=...> for Drive-backed media.
+  return `https://drive.google.com/file/d/${id}/preview`;
 }
 
 async function loadStudents(){
@@ -137,39 +118,8 @@ function renderStudentCards(students, className){
                 loading="lazy"
                 allowfullscreen
               ></iframe>
-              <div class="studentIframeFallbackAction" hidden>
-                <button class="btn btn--primary" type="button" data-open-new-tab>開新分頁觀看</button>
-              </div>
             `;
-
-            const fallbackAction = wrapEl.querySelector('.studentIframeFallbackAction');
-            const fallbackBtn = wrapEl.querySelector('[data-open-new-tab]');
-            const iframeEl = wrapEl.querySelector('iframe');
-
-            const showFallbackAction = () => {
-              if (fallbackAction) fallbackAction.hidden = false;
-            };
-
-            // If Drive embed cannot fully initialize due to policy/login/cookie issues,
-            // expose a direct-open fallback action after a short timeout.
-            const fallbackTimer = window.setTimeout(showFallbackAction, 5000);
-            if (iframeEl) {
-              iframeEl.addEventListener('load', () => {
-                // Keep the button hidden when iframe loads normally.
-                window.clearTimeout(fallbackTimer);
-              }, { once: true });
-              iframeEl.addEventListener('error', () => {
-                window.clearTimeout(fallbackTimer);
-                renderOpenInNewTabFallback(wrapEl, s);
-              }, { once: true });
-            }
-
-            if (fallbackBtn) {
-              fallbackBtn.addEventListener('click', () => renderOpenInNewTabFallback(wrapEl, s), { once: true });
-            }
           }, { once: true });
-        } else {
-          videoEl.addEventListener('error', () => renderOpenInNewTabFallback(wrapEl, s), { once: true });
         }
       }
 
