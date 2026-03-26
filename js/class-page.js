@@ -30,8 +30,9 @@ function extractDriveId(url){
 function getDrivePreviewUrl(url){
   const id = extractDriveId(url);
   if (!id) return '';
-  // Preview is usually more tolerant than <video src=...> for Drive-backed media.
-  return `https://drive.google.com/file/d/${id}/preview`;
+  // Use Drive "view" page inside iframe instead of "preview".
+  // In practice, "preview" often falls back to a lower-bitrate/transcoded stream.
+  return `https://drive.google.com/file/d/${id}/view?usp=sharing`;
 }
 
 async function loadStudents(){
