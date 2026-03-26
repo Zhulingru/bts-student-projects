@@ -57,7 +57,7 @@ function renderStudentCards(students, className){
       </div>
       <div class="studentVideoWrap">
         ${hasVideo
-          ? `<video class="studentVideo" src="${safeVideoUrl}" preload="metadata" controls playsinline crossorigin="anonymous"></video>`
+          ? `<video class="studentVideo" src="${safeVideoUrl}" preload="metadata" controls playsinline></video>`
           : `<div class="studentNoVideo">尚未提供影片</div>`
         }
       </div>
