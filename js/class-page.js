@@ -21,6 +21,19 @@ function normalizeVideoUrl(url){
   return raw;
 }
 
+function extractDriveId(url){
+  const raw = String(url || '').trim();
+  const m = raw.match(/drive\.google\.com\/file\/d\/([^\/?]+)\//);
+  return m && m[1] ? m[1] : '';
+}
+
+function getDrivePreviewUrl(url){
+  const id = extractDriveId(url);
+  if (!id) return '';
+  // Preview is usually more tolerant than <video src=...> for Drive-backed media.
+  return `https://drive.google.com/file/d/${id}/preview`;
+}
+
 async function loadStudents(){
   try{
     const res = await fetch('data/students.json', { cache: 'no-store' });
@@ -85,10 +98,30 @@ function renderStudentCards(students, className){
       card.tabIndex = 0;
 
       const videoEl = card.querySelector('video');
+      const wrapEl = card.querySelector('.studentVideoWrap');
       const start = () => {
         // Must be triggered by a user gesture; click/keyboard handlers satisfy this.
         if (videoEl && videoEl.paused) videoEl.play().catch(() => {});
       };
+
+      // If direct <video> loading fails (common with some cloud hosts),
+      // fallback to an iframe preview so parents can still watch.
+      if (videoEl && wrapEl) {
+        const drivePreviewUrl = getDrivePreviewUrl(s.videoUrl);
+        if (drivePreviewUrl) {
+          videoEl.addEventListener('error', () => {
+            // Replace the video area with Drive preview iframe.
+            wrapEl.innerHTML = `
+              <iframe
+                src="${escapeHtml(drivePreviewUrl)}"
+                title="${escapeHtml(s.name || '')}"
+                loading="lazy"
+                allowfullscreen
+              ></iframe>
+            `;
+          }, { once: true });
+        }
+      }
 
       card.addEventListener('click', start);
       card.addEventListener('keydown', (e) => {

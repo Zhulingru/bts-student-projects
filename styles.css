@@ -592,6 +592,12 @@ a{color:inherit}
   line-height:1.6;
   text-align:center;
 }
+.studentVideoWrap iframe{
+  width:100%;
+  height:100%;
+  border:0;
+  background:#000;
+}
 
 /* Modal */
 .modal{
