@@ -124,7 +124,7 @@ function renderStudentCards(students, className){
       <div class="studentVideoWrap">
         ${hasNotion
           ? `<a class="studentThumbLink" href="${safeNotionUrl}" target="_blank" rel="noopener noreferrer">
-              <img class="studentThumb" src="${safeImageSrc}" alt="${safeName}" loading="lazy" />
+              <img class="studentThumb" data-student-id="${escapeHtml(s.id || '')}" src="${safeImageSrc}" alt="${safeName}" loading="lazy" />
             </a>`
           : `<div class="studentNoVideo">尚未提供 Notion 連結</div>`
         }
