@@ -5,33 +5,65 @@ function escapeHtml(str){
   });
 }
 
-function normalizeVideoUrl(url){
-  const raw = String(url || '').trim();
-  if (!raw || raw === '#') return raw;
-
-  // Google Drive: convert "view" page link -> direct download link for <video>
-  // Example:
-  // https://drive.google.com/file/d/<ID>/view?usp=sharing
-  const m = raw.match(/drive\.google\.com\/file\/d\/([^\/?]+)\//);
-  if (m && m[1]) {
-    const id = m[1];
-    return `https://drive.google.com/uc?export=download&id=${id}`;
+const STUDENT_NAME_MAP = {
+  A: {
+    '鈴木ももか': '劉恩裴',
+    'SMISKI': '蕭霆蕾',
+    '伏黑惠': '盧應心',
+    'QQ蛋黃史萊姆軟軟': '翁霈恩',
+    '齊藤ゆきみ': '曹凱棻',
+    'Noah': '徐佑琪',
+    'juhoon': '王沛容',
+    '青海透真': '湯鎧榳',
+    '詭異生物': '陳泳旭',
+    '紅色小丸子': '陳星潔',
+    '跳舞沒牙': '李羿愷'
+  },
+  B: {
+    '皮卡秋': '蔡忠諺',
+    '艾德加': '蔡行一',
+    'Lee Wonhee': '吳晨暄',
+    '星野露比': '張允薰',
+    'emoji guy': '程澈',
+    'dio': '賴雋曄',
+    '貓貓蟲咖波': '朱恩圻',
+    '白石杏': '高可芩',
+    '沒牙': '姜宜辰',
+    '雲寶寶（woonhak)': '林至誼'
+  },
+  C: {
+    '多拉多夢': '俞鴻彥',
+    '帥哥機器人': '翁翊扉',
+    '咪咪貓貓': '賴宸安',
+    '吳柏毅': '張哲語',
+    '貓貓': '黃詠甯',
+    '藿藿': '吳祈宣',
+    '遊戲人偶': '陳郁筌',
+    'kq掃地機': '程紫茵',
+    '麻糬小白熊': '林宥鈊',
+    '凱特西': '李耘瑍'
   }
+};
 
-  return raw;
+const IMAGE_EXT_OVERRIDES = {
+  A: {
+    '蕭霆蕾': 'jpeg'
+  },
+  C: {
+    '賴宸安': 'jpg'
+  }
+};
+
+function getStudentName(student, className){
+  const map = STUDENT_NAME_MAP[className] || {};
+  return map[student.avatarName] || student.name || student.avatarName || '學生';
 }
 
-function extractDriveId(url){
-  const raw = String(url || '').trim();
-  const m = raw.match(/drive\.google\.com\/file\/d\/([^\/?]+)\//);
-  return m && m[1] ? m[1] : '';
-}
-
-function getDrivePreviewUrl(url){
-  const id = extractDriveId(url);
-  if (!id) return '';
-  // Preview is usually more tolerant than <video src=...> for Drive-backed media.
-  return `https://drive.google.com/file/d/${id}/preview`;
+function getStudentImageSrc(studentName, className){
+  const extMap = IMAGE_EXT_OVERRIDES[className] || {};
+  const ext = extMap[studentName] || 'png';
+  const folder = `${className}class`;
+  return `assets/images/${folder}/${studentName}.${ext}`;
 }
 
 async function loadStudents(){
@@ -71,10 +103,14 @@ function renderStudentCards(students, className){
   }
 
   students.forEach((s) => {
-    const safeName = escapeHtml(s.name || '');
-    const normalizedVideoUrl = normalizeVideoUrl(s.videoUrl);
-    const safeVideoUrl = escapeHtml(normalizedVideoUrl || '');
-    const hasVideo = !!(normalizedVideoUrl && normalizedVideoUrl !== '#');
+    const studentName = getStudentName(s, className);
+    const displayName = s.avatarName || s.name || '分身';
+    const safeName = escapeHtml(displayName);
+    const imageSrc = getStudentImageSrc(studentName, className);
+    const safeImageSrc = escapeHtml(imageSrc);
+    const notionUrl = String(s.notionUrl || '').trim();
+    const safeNotionUrl = escapeHtml(notionUrl);
+    const hasNotion = notionUrl && notionUrl !== '#';
 
     const card = document.createElement('div');
     card.className = 'studentCard';
@@ -86,51 +122,14 @@ function renderStudentCards(students, className){
         <div class="pill">${className} 班</div>
       </div>
       <div class="studentVideoWrap">
-        ${hasVideo
-          ? `<video class="studentVideo" src="${safeVideoUrl}" preload="metadata" controls playsinline></video>`
-          : `<div class="studentNoVideo">尚未提供影片</div>`
+        ${hasNotion
+          ? `<a class="studentThumbLink" href="${safeNotionUrl}" target="_blank" rel="noopener noreferrer">
+              <img class="studentThumb" src="${safeImageSrc}" alt="${safeName}" loading="lazy" />
+            </a>`
+          : `<div class="studentNoVideo">尚未提供 Notion 連結</div>`
         }
       </div>
     `;
-
-    if (hasVideo) {
-      card.setAttribute('role', 'button');
-      card.tabIndex = 0;
-
-      const videoEl = card.querySelector('video');
-      const wrapEl = card.querySelector('.studentVideoWrap');
-      const start = () => {
-        // Must be triggered by a user gesture; click/keyboard handlers satisfy this.
-        if (videoEl && videoEl.paused) videoEl.play().catch(() => {});
-      };
-
-      // If direct <video> loading fails (common with some cloud hosts),
-      // fallback to an iframe preview so parents can still watch.
-      if (videoEl && wrapEl) {
-        const drivePreviewUrl = getDrivePreviewUrl(s.videoUrl);
-        if (drivePreviewUrl) {
-          videoEl.addEventListener('error', () => {
-            // Replace the video area with Drive preview iframe.
-            wrapEl.innerHTML = `
-              <iframe
-                src="${escapeHtml(drivePreviewUrl)}"
-                title="${escapeHtml(s.name || '')}"
-                loading="lazy"
-                allowfullscreen
-              ></iframe>
-            `;
-          }, { once: true });
-        }
-      }
-
-      card.addEventListener('click', start);
-      card.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          start();
-        }
-      });
-    }
 
     grid.appendChild(card);
   });

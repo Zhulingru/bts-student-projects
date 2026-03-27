@@ -574,11 +574,16 @@ a{color:inherit}
   background: rgba(0,0,0,.35);
   height: 220px;
 }
-.studentVideoWrap video{
+.studentThumbLink{
   width:100%;
   height:100%;
-  background:#000;
-  object-fit:contain;
+  display:block;
+}
+.studentThumb{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
 }
 .studentNoVideo{
   width:100%;
@@ -591,12 +596,6 @@ a{color:inherit}
   font-weight:900;
   line-height:1.6;
   text-align:center;
-}
-.studentVideoWrap iframe{
-  width:100%;
-  height:100%;
-  border:0;
-  background:#000;
 }
 
 /* Modal */
